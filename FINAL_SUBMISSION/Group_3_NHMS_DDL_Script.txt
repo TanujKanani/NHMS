@@ -1,0 +1,227 @@
+IT214 - DBMS- Winter’25 – Project (Final Submission)
+LAB GROUP – 6
+GROUP ID – 3
+
+Group Members:-
+1.	RUSHIL SONI – 202301482
+2.	YUG TEJANI – 202301487
+3.	(Group Representative) TANUJ KANANI - 202301474 - Contact No. – 8866779189
+4.	PARTH KHANDLA – 202301465
+
+TOPIC:- NATIONAL HEALTH MANAGEMENT SYSTEM (***DDL SCRIPT***)
+
+
+set search_path to "Trial_1_project";
+
+select * from Insurance_companies;
+
+select * from Insurance_Plans;
+
+select * from Patient;
+
+select * from Diseases;
+
+select * from Chronic_Diseases;
+
+select * from Doctor;
+
+select * from Hospital;
+
+select * from Designation;
+
+select * from Worked_In;
+
+SELECT * FROM DRUGS;
+
+select * from Prescription;
+
+select * from Tie_Up_With;
+
+create table Insurance_companies(
+	Insurance_company_ID varchar(30) NOT NULL,
+	Company_name varchar(30) NOT NULL,
+
+	PRIMARY KEY(Insurance_company_ID)
+);
+
+create table Insurance_Plans(
+	Ins_cmp_ID varchar(30) NOT NULL,
+	Plan_Name varchar(30) NOT NULL,
+	Coverage integer DEFAULT NULL,
+	Max_Disease_Points integer DEFAULT NULL,
+
+	PRIMARY KEY(Ins_cmp_ID,Plan_Name),
+
+	FOREIGN KEY(Ins_cmp_ID) REFERENCES Insurance_companies(Insurance_company_ID) 
+      ON UPDATE CASCADE ON DELETE SET NULL 
+);
+
+create table Patient(
+	Aadhar_no bigint NOT NULL,
+	Gender char(1) NOT NULL,
+	DOB date NOT NULL,
+	Blood_grp varchar(30) NOT NULL,
+	"Name" varchar(50) NOT NULL,
+	Phone_number integer NOT NULL,
+	Ins_cmp_id varchar(30) DEFAULT NULL,
+	Plan_Name varchar(30) DEFAULT NULL,
+
+	PRIMARY KEY(Aadhar_no),
+
+	FOREIGN KEY(Ins_cmp_id,Plan_Name) REFERENCES Insurance_Plans(Ins_cmp_ID,Plan_Name)
+		ON UPDATE CASCADE ON DELETE SET NULL
+);
+
+create table Diseases(
+	Disease_ID integer NOT NULL,
+	Disease_Name varchar(30) NOT NULL,
+	Categroy varchar(10) NOT NULL,
+	Labour integer DEFAULT NULL,
+	Disease_points integer DEFAULT NULL,
+
+	PRIMARY KEY(Disease_ID)
+	
+);
+
+create table Chronic_Diseases(
+	Aadhar_No bigint NOT NULL,
+	Disease_ID integer NOT NULL,
+
+	PRIMARY KEY(Aadhar_No,Disease_ID),
+
+	FOREIGN KEY(Aadhar_No) REFERENCES Patient(Aadhar_no) 
+      ON UPDATE CASCADE ON DELETE SET NULL,
+
+	FOREIGN KEY(Disease_ID) REFERENCES Diseases(Disease_ID) 
+      ON UPDATE CASCADE ON DELETE SET NULL
+);
+
+
+create table Doctor(
+	Licence_No varchar(30) NOT NULL,
+	Speciality varchar(30) DEFAULT NULL,
+	DOB date NOT NULL,
+	"Degree" varchar(30) NOT NULL,
+	Authorization_Level integer DEFAULT 0,
+	Consult_Charge integer DEFAULT NULL,
+	"Doctor_Name" varchar(50) NOT NULL,
+
+	PRIMARY KEY(Licence_No)
+);
+
+create table Hospital(
+	Hospital_ID varchar(30) NOT NULL,
+	Capacity integer NOT NULL,
+	"State" varchar(30) NOT NULL,
+	City varchar(30) NOT NULL,
+	Category varchar(30) DEFAULT NULL,
+	Authorization_Level integer DEFAULT 0,
+
+	PRIMARY KEY(Hospital_ID)
+);
+
+create table Designation(
+	Hospital_ID varchar(30) NOT NULL,
+	Licence_No varchar(30) NOT NULL,
+	Clear_Level_Match integer DEFAULT 0,
+
+	PRIMARY KEY(Hospital_ID,Licence_No),
+
+	FOREIGN KEY(Hospital_ID) REFERENCES Hospital(Hospital_ID) 
+      ON UPDATE CASCADE ON DELETE SET NULL,
+
+	FOREIGN KEY(Licence_No) REFERENCES Doctor(Licence_No) 
+      ON UPDATE CASCADE ON DELETE SET NULL
+);
+
+create table Worked_In(
+	Hospital_ID varchar(30) NOT NULL,
+	Licence_No varchar(30) NOT NULL,
+
+	PRIMARY KEY(Hospital_ID,Licence_No),
+
+	FOREIGN KEY(Hospital_ID) REFERENCES Hospital(Hospital_ID) 
+      ON UPDATE CASCADE ON DELETE SET NULL,
+
+	FOREIGN KEY(Licence_No) REFERENCES Doctor(Licence_No) 
+      ON UPDATE CASCADE ON DELETE SET NULL
+);
+
+create table Drugs(
+	Drug_ID varchar(30) NOT NULL,
+	Classification integer DEFAULT 0,
+	Drug_Name varchar(30) NOT NULL,
+	Price integer DEFAULT NULL,
+
+	PRIMARY KEY(Drug_ID)
+);
+
+create table Prescription(
+	Patient_ID bigint NOT NULL,
+	Drug_ID varchar(30) NOT NULL,
+	Disease_ID integer NOT NULL,
+	Date_Prescribed date NOT NULL,
+	Hospital_ID varchar(30) NOT NULL,
+	Licence_No varchar(30) NOT NULL,
+
+	PRIMARY KEY(Patient_ID,Drug_ID,Disease_ID,Date_Prescribed),
+
+	FOREIGN KEY(Patient_ID) REFERENCES Patient(Aadhar_no) 
+      ON UPDATE CASCADE ON DELETE SET NULL,
+
+	FOREIGN KEY(Drug_ID) REFERENCES Drugs(Drug_ID) 
+      ON UPDATE CASCADE ON DELETE SET NULL,
+
+	FOREIGN KEY(Disease_ID) REFERENCES Diseases(Disease_ID) 
+      ON UPDATE CASCADE ON DELETE SET NULL,
+
+	FOREIGN KEY(Hospital_ID) REFERENCES Hospital(Hospital_ID) 
+      ON UPDATE CASCADE ON DELETE SET NULL,
+
+	FOREIGN KEY(Licence_No) REFERENCES Doctor(Licence_No) 
+      ON UPDATE CASCADE ON DELETE SET NULL
+);
+
+create table Tie_Up_With(
+	Ins_Cmp_ID VARCHAR(30) NOT NULL,
+	Hospital_ID varchar(30) NOT NULL,
+
+	PRIMARY KEY(Ins_Cmp_ID,Hospital_ID),
+
+	FOREIGN KEY(Ins_Cmp_ID) REFERENCES Insurance_companies(Insurance_company_ID) 
+      ON UPDATE CASCADE ON DELETE SET NULL,
+
+	FOREIGN KEY(Hospital_ID) REFERENCES Hospital(Hospital_ID) 
+      ON UPDATE CASCADE ON DELETE SET NULL
+);
+
+
+--CREATING A TRIGGER FUNCTION WHICH AUTOMATICALLY UPDATES THE VALUE OF "Clear_Level_Match" IN  "Designation" table WHEN THE VALUES OF DOCTOR'S AND HOSTPITAL'S "AUTHORIZATION_LVL" TAKING MINIMUM OF THEM
+
+CREATE OR REPLACE FUNCTION update_clear_level_match()
+RETURNS TRIGGER 
+LANGUAGE 'plpgsql'
+AS $$
+DECLARE
+    doctor_level INT;
+    hospital_level INT;
+BEGIN
+    SELECT Authorization_Level INTO doctor_level
+    FROM Doctor
+    WHERE Licence_No = NEW.Licence_No;
+
+    SELECT Authorization_Level INTO hospital_level
+    FROM Hospital
+    WHERE Hospital_ID = NEW.Hospital_ID;
+
+    NEW.Clear_Level_Match := LEAST(doctor_level, hospital_level);
+
+    RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_update_clear_level_match
+BEFORE INSERT OR UPDATE ON Designation
+FOR EACH ROW
+EXECUTE FUNCTION update_clear_level_match();
+

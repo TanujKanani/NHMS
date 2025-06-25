@@ -1,0 +1,422 @@
+IT214 - DBMS- Winter’25 – Project (Final Submission)
+LAB GROUP – 6
+GROUP ID – 3
+
+Group Members:-
+1.	RUSHIL SONI – 202301482
+2.	YUG TEJANI – 202301487
+3.	(Group Representative) TANUJ KANANI - 202301474 - Contact No. – 8866779189
+4.	PARTH KHANDLA – 202301465
+
+TOPIC:- NATIONAL HEALTH MANAGEMENT SYSTEM (***SQL QUERIES***)
+
+
+
+
+--1 Accessible Hospitals by Insurance – List hospitals covered under a patient’s insurance plan.
+
+CREATE OR REPLACE FUNCTION get_hospitals_by_patient_insurance(p_aadhar BIGINT)  
+RETURNS TABLE (
+    Hospital_ID VARCHAR,
+    State VARCHAR,
+    City VARCHAR
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT h.Hospital_ID, h."State", h.City
+    FROM Patient p
+    JOIN Tie_Up_With t ON p.Ins_cmp_id = t.Ins_Cmp_ID
+    JOIN Hospital h ON t.Hospital_ID = h.Hospital_ID
+    WHERE p.Aadhar_no = p_aadhar;
+END;
+$$;
+
+select * from get_hospitals_by_patient_insurance(159330550321);
+
+
+
+--2 Patient History – Show a patient's complete diagnosis and prescription history.
+
+CREATE OR REPLACE FUNCTION get_prescriptions_by_patient(p_aadhar BIGINT)
+RETURNS TABLE (
+    Date_Prescribed DATE,
+    Disease_Name VARCHAR,
+    Drug_ID VARCHAR
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT pr.Date_Prescribed, d.Disease_Name, pr.Drug_ID
+    FROM Prescription pr
+    JOIN Diseases d ON pr.Disease_ID = d.Disease_ID
+    WHERE pr.Patient_ID = p_aadhar;
+END;
+$$;
+
+select * from get_prescriptions_by_patient(159330550321);
+
+
+
+--3  Doctors by Specialty – Count doctors per particular specialty across hospitals.
+
+CREATE OR REPLACE FUNCTION get_total_doctors_by_speciality(p_speciality VARCHAR)
+RETURNS TABLE (
+    Licence_No VARCHAR,
+    Doctor_Name VARCHAR,
+    Speciality VARCHAR,
+	Hospital_ID VARCHAR
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT d.Licence_No, d."Doctor_Name", d.Speciality, w.Hospital_ID
+	FROM Doctor d
+	JOIN worked_in w ON d.Licence_No = w.Licence_No
+	WHERE d.Speciality = p_speciality;
+END;
+$$;
+
+select * from get_total_doctors_by_speciality('Cardiology');
+
+
+
+--4  Insurance Payouts – Total amount an insurance company owes to a hospital.
+
+CREATE OR REPLACE FUNCTION calculate_total_payment_by_inscompanies(
+    p_ins_id VARCHAR,
+    p_hospital_id VARCHAR,
+    p_drug_qty NUMERIC,
+	p_labour_qty NUMERIC
+)
+RETURNS TABLE(
+	total_payment NUMERIC
+)
+LANGUAGE 'plpgsql'
+AS $$
+DECLARE
+    total_payment NUMERIC;
+BEGIN
+	RETURN QUERY
+    SELECT SUM((dr.Price * p_drug_qty) + (di.Labour * p_labour_qty) + doc.consult_charge)
+    AS total_payment
+    FROM Prescription pr
+    JOIN Drugs dr ON pr.Drug_ID = dr.Drug_ID
+    JOIN Patient pt ON pr.Patient_ID = pt.Aadhar_no
+    JOIN Diseases di ON pr.Disease_ID = di.Disease_ID
+	JOIN Doctor doc ON pr.licence_no = doc.licence_no
+    WHERE pt.Ins_cmp_id = p_ins_id
+      AND pr.Hospital_ID = p_hospital_id;
+END;
+$$;
+
+SELECT * from calculate_total_payment_by_inscompanies('IC001', 'H001', 2,1.5);
+
+
+
+
+--5 Patient Bill – Generate a detailed bill for a patient.
+
+CREATE OR REPLACE FUNCTION calculate_patient_bill(
+    p_patient_id BIGINT,
+    p_drug_qty NUMERIC,
+	p_labour_qty NUMERIC
+)
+RETURNS TABLE(
+	patient_id BIGINT,
+	total_bill NUMERIC
+)
+LANGUAGE 'plpgsql'
+AS $$
+DECLARE
+    total_bill NUMERIC;
+BEGIN
+	RETURN QUERY
+    SELECT p_patient_id, SUM((dr.Price * p_drug_qty) + (di.Labour * p_labour_qty) + doc.consult_charge)
+    AS total_bill
+    FROM Prescription pr
+    JOIN Drugs dr ON pr.Drug_ID = dr.Drug_ID
+    JOIN Diseases di ON pr.Disease_ID = di.Disease_ID
+	JOIN Doctor doc ON pr.licence_no = doc.licence_no 
+    WHERE pr.Patient_ID = p_patient_id;
+END;
+$$;
+
+select * from calculate_patient_bill(159330550321,2,1.5);
+
+
+
+--6   Insurance Eligibility – Check if a patient exceeds disease point limits for taken insurance plan.
+
+CREATE OR REPLACE FUNCTION check_patient_insurance_eligibility(p_aadhar_no BIGINT)
+RETURNS TABLE (
+    Aadhar_no BIGINT,
+    patient_name VARCHAR,
+    plan_name VARCHAR,
+    max_disease_points INT,
+    total_disease_points BIGINT,
+    eligibility_status TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        p.Aadhar_no,
+        p."Name" AS patient_name,
+        ip.plan_name,
+        ip.max_disease_points,
+        COALESCE(SUM(d.disease_points), 0) AS total_disease_points,
+        CASE
+            WHEN COALESCE(SUM(d.disease_points), 0) <= ip.max_disease_points THEN 'Eligible'
+            ELSE 'Not Eligible'
+        END AS eligibility_status
+    FROM Patient p
+    JOIN Insurance_Plans ip ON p.plan_name = ip.plan_name
+    LEFT JOIN Prescription pr ON p.Aadhar_no = pr.patient_id
+    LEFT JOIN Diseases d ON pr.disease_id = d.disease_id
+    WHERE p.Aadhar_no = p_aadhar_no
+    GROUP BY p.Aadhar_no, p."Name", ip.plan_name, ip.max_disease_points;
+END;
+$$;
+
+
+select * from check_patient_insurance_eligibility(665046256864);
+
+
+
+
+--7 Top Diseases – List the most common top 'x' diseases.
+
+CREATE OR REPLACE FUNCTION get_top_diseases(limit_count INT)
+RETURNS TABLE (
+    disease_id INT,
+    disease_name VARCHAR,
+    Occurrence BIGINT
+)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT pr.Disease_ID, d.Disease_Name, COUNT(*) AS Occurrence
+    FROM Prescription pr
+    JOIN Diseases d ON pr.Disease_ID = d.Disease_ID
+    GROUP BY pr.Disease_ID, d.Disease_Name
+    ORDER BY Occurrence DESC
+    LIMIT limit_count;
+END;
+$$;
+
+
+select * from get_top_diseases(2);
+
+
+
+
+--8 Hospital Specialties – Count available specialties in a given hospital.
+
+CREATE OR REPLACE FUNCTION get_specialities_with_counts_by_hospital(p_hospital_id VARCHAR)
+RETURNS TABLE (
+    Speciality VARCHAR,
+    Doctor_Count BIGINT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT d.Speciality, COUNT(*) AS Doctor_Count
+    FROM Worked_In w
+    JOIN Doctor d ON w.Licence_No = d.Licence_No
+    WHERE w.Hospital_ID = p_hospital_id
+    GROUP BY d.Speciality;
+END;
+$$;
+
+
+select * from get_specialities_with_counts_by_hospital('H010'); 
+
+
+
+
+--9 Popular Drugs – List the most frequently prescribed drugs.
+
+CREATE OR REPLACE FUNCTION get_most_drug_usage_counts()
+RETURNS TABLE (
+    Drug_ID VARCHAR,
+    Usage_Count BIGINT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT pr.Drug_ID, COUNT(*) AS Usage_Count
+    FROM Prescription pr
+    GROUP BY pr.Drug_ID
+    ORDER BY Usage_Count DESC;
+END;
+$$;
+
+
+select * from get_most_drug_usage_counts();
+
+
+
+
+--10  Chronic Patients – Identify patients with chronic diseases.
+
+
+CREATE OR REPLACE FUNCTION get_patients_with_chronic_diseases()
+RETURNS TABLE (
+    aadhar_no BIGINT,
+    Name VARCHAR,
+    disease_name VARCHAR
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT DISTINCT pt.aadhar_no, pt."Name", di.disease_name
+    FROM Patient pt
+    JOIN Chronic_Diseases cd ON pt.aadhar_no = cd.aadhar_No
+    JOIN Diseases di ON cd.disease_id = di.disease_id;
+END;
+$$;
+
+
+select * from get_patients_with_chronic_diseases();
+
+
+
+
+--11  Doctor Affiliations – Number of hospitals a doctor has worked with.
+
+
+SELECT w.Licence_No, COUNT(DISTINCT w.Hospital_ID) AS Hospital_Count
+FROM Worked_In w
+WHERE w.Licence_No = 'D001'
+GROUP BY w.Licence_No;
+
+CREATE OR REPLACE FUNCTION get_hospital_count_for_doctor(p_licence_no VARCHAR)
+RETURNS TABLE (
+    Licence_No VARCHAR,
+    Hospital_Count BIGINT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT w.Licence_No, COUNT(DISTINCT w.Hospital_ID) AS Hospital_Count
+    FROM Worked_In w
+    WHERE w.Licence_No = p_licence_no
+    GROUP BY w.Licence_No;
+END;
+$$;
+
+
+select * from get_hospital_count_for_doctor('D001');
+
+
+
+
+--12 Avg Age per Disease – Average patient age for each disease.
+
+CREATE OR REPLACE FUNCTION get_avg_patient_age_per_disease()
+RETURNS TABLE (
+    Disease_ID INT,
+    Disease_Name VARCHAR,
+    Avg_Age double precision
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    Avg_Age double precision;
+BEGIN
+    RETURN QUERY
+    SELECT d.Disease_ID, d.Disease_Name,
+           AVG(date_part('year', age(current_date, pt.DOB))) AS Avg_Age
+    FROM Prescription pr
+    JOIN Patient pt ON pr.Patient_ID = pt.Aadhar_no
+    JOIN Diseases d ON pr.Disease_ID = d.Disease_ID
+    GROUP BY d.Disease_ID, d.Disease_Name
+	ORDER BY Avg_Age DESC;
+END;
+$$;
+
+
+select * from get_avg_patient_age_per_disease();
+
+
+
+	
+--13  Top Doctors – Top 'x' Doctors with the highest number of prescriptions.
+
+CREATE OR REPLACE FUNCTION get_top_prescribing_doctors(limit_count INT)
+RETURNS TABLE (
+    Licence_No VARCHAR,
+    Doctor_Name VARCHAR,
+    Prescription_Count BIGINT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT d.Licence_No, d."Doctor_Name", COUNT(*) AS Prescription_Count
+    FROM Prescription pr
+    JOIN Doctor d ON pr.Licence_No = d.Licence_No
+    GROUP BY d.Licence_No, d."Doctor_Name"
+    ORDER BY Prescription_Count DESC
+    LIMIT limit_count;
+END;
+$$;
+
+select * from get_top_prescribing_doctors(3);
+
+
+
+
+--14  Patients per Doctor – Count of total number of patients per doctor.
+
+CREATE OR REPLACE FUNCTION get_patient_count_per_doctor()
+RETURNS TABLE (
+    Licence_No VARCHAR,
+    Patient_Count BIGINT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT pr.Licence_No, COUNT(DISTINCT pr.Patient_ID) AS Patient_Count
+    FROM Prescription pr
+    GROUP BY pr.Licence_No;
+END;
+$$;
+
+select * from get_patient_count_per_doctor();
+
+
+
+
+--15  Hospital Visits by Date – Number of visits by date to a hospital.
+
+CREATE OR REPLACE FUNCTION get_daily_visit_counts_for_hospital(p_hospital_id VARCHAR)
+RETURNS TABLE (
+    Date_Prescribed DATE,
+    Visit_Count BIGINT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT pr.Date_Prescribed, COUNT(*) AS Visit_Count
+    FROM Prescription pr
+    WHERE pr.Hospital_ID = p_hospital_id
+    GROUP BY pr.Date_Prescribed
+    ORDER BY pr.Date_Prescribed;
+END;
+$$;
+
+select * from get_daily_visit_counts_for_hospital('H001');
+

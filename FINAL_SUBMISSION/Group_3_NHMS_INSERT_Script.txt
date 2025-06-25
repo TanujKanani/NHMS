@@ -1,0 +1,385 @@
+IT214 - DBMS- Winter’25 – Project (Final Submission)
+LAB GROUP – 6
+GROUP ID – 3
+
+Group Members:-
+1.	RUSHIL SONI – 202301482
+2.	YUG TEJANI – 202301487
+3.	(Group Representative) TANUJ KANANI - 202301474 - Contact No. – 8866779189
+4.	PARTH KHANDLA – 202301465
+
+TOPIC:- NATIONAL HEALTH MANAGEMENT SYSTEM (***INSERT SCRIPT***)
+
+
+
+--1 INSERT IN Insurance_companies
+
+CREATE OR REPLACE PROCEDURE insert_insurance_company(p_id VARCHAR, p_name VARCHAR)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    INSERT INTO Insurance_companies(Insurance_company_ID, Company_name) VALUES (p_id, p_name);
+END;
+$$;
+
+
+--2 INSERT IN Insurance_Plans
+
+CREATE OR REPLACE PROCEDURE insert_insurance_plan(p_ins_cmp_id VARCHAR, p_plan_name VARCHAR, p_coverage INTEGER, p_max_disease_points INTEGER)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    INSERT INTO Insurance_Plans(Ins_cmp_ID, Plan_Name, Coverage, Max_Disease_Points)
+    VALUES (p_ins_cmp_id, p_plan_name, p_coverage, p_max_disease_points);
+END;
+$$;
+
+
+--3 INSERT IN Patient
+
+CREATE OR REPLACE PROCEDURE insert_patient(p_aadhar BIGINT, p_gender CHAR(1), p_dob DATE, p_blood_grp VARCHAR, p_name VARCHAR, p_phone INT, p_ins_cmp_id VARCHAR DEFAULT NULL, p_plan_name VARCHAR DEFAULT NULL)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    INSERT INTO Patient(Aadhar_no, Gender, DOB, Blood_grp, "Name", Phone_number, Ins_cmp_id, Plan_Name)
+    VALUES (p_aadhar, p_gender, p_dob, p_blood_grp, p_name, p_phone, p_ins_cmp_id, p_plan_name);
+END;
+$$;
+
+
+--4 INSERT IN Diseases
+
+CREATE OR REPLACE PROCEDURE insert_disease(p_id INT, p_name VARCHAR, p_category VARCHAR, p_labour INT, p_disease_points INT)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    INSERT INTO Diseases(Disease_ID, Disease_Name, Categroy, Labour, Disease_points)
+    VALUES (p_id, p_name, p_category, p_labour, p_disease_points);
+END;
+$$;
+
+
+
+--5 INSERT IN Chronic_Diseases
+
+CREATE OR REPLACE PROCEDURE insert_chronic_disease(p_aadhar BIGINT, p_disease_id INT)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    INSERT INTO Chronic_Diseases(Aadhar_No, Disease_ID)
+    VALUES (p_aadhar, p_disease_id);
+END;
+$$;
+
+
+
+--6 INSERT IN Doctor
+
+CREATE OR REPLACE PROCEDURE insert_doctor(p_licence VARCHAR, p_speciality VARCHAR, p_dob DATE, p_degree VARCHAR, p_auth_level INT, p_charge INT, p_name VARCHAR)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    INSERT INTO Doctor(Licence_No, Speciality, DOB, "Degree", Authorization_Level, Consult_Charge, "Doctor_Name")
+    VALUES (p_licence, p_speciality, p_dob, p_degree, p_auth_level, p_charge, p_name);
+END;
+$$;
+
+
+
+
+--7 INSERT IN Hospital
+
+CREATE OR REPLACE PROCEDURE insert_hospital(p_id VARCHAR, p_capacity INT, p_state VARCHAR, p_city VARCHAR, p_category VARCHAR, p_auth_level INT)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    INSERT INTO Hospital(Hospital_ID, Capacity, "State", City, Category, Authorization_Level)
+    VALUES (p_id, p_capacity, p_state, p_city, p_category, p_auth_level);
+END;
+$$;
+
+
+
+--8 INSERT IN Designation
+
+CREATE OR REPLACE PROCEDURE insert_designation(p_hospital_id VARCHAR, p_licence_no VARCHAR)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    INSERT INTO Designation(Hospital_ID, Licence_No)
+    VALUES (p_hospital_id, p_licence_no);
+END;
+$$;
+
+
+
+
+--9 INSERT IN Worked_In
+
+CREATE OR REPLACE PROCEDURE insert_worked_in(p_hospital_id VARCHAR, p_licence_no VARCHAR)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    INSERT INTO Worked_In(Hospital_ID, Licence_No)
+    VALUES (p_hospital_id, p_licence_no);
+END;
+$$;
+
+
+
+--10 INSERT IN Drugs
+
+CREATE OR REPLACE PROCEDURE insert_drug(p_id VARCHAR, p_classification INT, p_name VARCHAR, p_price INT)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    INSERT INTO Drugs(Drug_ID, Classification, Drug_Name, Price)
+    VALUES (p_id, p_classification, p_name, p_price);
+END;
+$$;
+
+
+
+
+--11 INSERT IN Prescription
+
+CREATE OR REPLACE PROCEDURE insert_prescription(p_patient_id BIGINT, p_drug_id VARCHAR, p_disease_id INT, p_date DATE, p_hospital_id VARCHAR, p_licence_no VARCHAR)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    INSERT INTO Prescription(Patient_ID, Drug_ID, Disease_ID, Date_Prescribed, Hospital_ID, Licence_No)
+    VALUES (p_patient_id, p_drug_id, p_disease_id, p_date, p_hospital_id, p_licence_no);
+END;
+$$;
+
+
+
+--12 INSERT IN Tie_Up_With
+
+CREATE OR REPLACE PROCEDURE insert_tie_up(p_ins_cmp_id VARCHAR, p_hospital_id VARCHAR)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    INSERT INTO Tie_Up_With(Ins_Cmp_ID, Hospital_ID)
+    VALUES (p_ins_cmp_id, p_hospital_id);
+END;
+$$;
+
+
+
+
+
+
+-- 1. Insurance_company
+
+CALL insert_insurance_company('IC001', 'Star Health');
+CALL insert_insurance_company('IC002', 'Niva Bupa');
+CALL insert_insurance_company('IC003', 'HDFC Ergo');
+CALL insert_insurance_company('IC004', 'Tata AIG');
+CALL insert_insurance_company('IC005', 'Reliance Health');
+
+-- 2. Insurance Plan
+
+-- Star Health
+CALL insert_insurance_plan('IC001', 'Star Platinum', 5000, 65);
+CALL insert_insurance_plan('IC001', 'Star Silver', 2000, 95);
+CALL insert_insurance_plan('IC001', 'Star Gold', 10000, 155);
+
+-- Niva Bupa
+CALL insert_insurance_plan('IC002', 'Niva Premium', 8000, 120);
+CALL insert_insurance_plan('IC002', 'Niva Saver', 3000, 85);
+CALL insert_insurance_plan('IC002', 'Niva Basic', 1500, 45);
+
+-- HDFC Ergo
+CALL insert_insurance_plan('IC003', 'Ergo Elite', 10000, 120);
+CALL insert_insurance_plan('IC003', 'Ergo Value', 4000, 80);
+CALL insert_insurance_plan('IC003', 'Ergo Smart', 2500, 50);
+
+-- Tata AIG
+CALL insert_insurance_plan('IC004', 'Tata Secure', 6000, 105);
+CALL insert_insurance_plan('IC004', 'Tata Flex', 3500, 65);
+CALL insert_insurance_plan('IC004', 'Tata Care', 2000, 35);
+
+-- Reliance Health
+CALL insert_insurance_plan('IC005', 'Reliance Ultra', 9000, 135);
+CALL insert_insurance_plan('IC005', 'Reliance Protect', 5000, 90);
+CALL insert_insurance_plan('IC005', 'Reliance Starter', 1000, 45);
+
+
+-- 3. Patient
+
+CALL insert_patient(159330550321::BIGINT, 'M'::CHAR, TO_DATE('1966-11-12','YYYY-MM-DD')::DATE, 'B-'::VARCHAR, 'Hrishita Choudhry'::VARCHAR, 8157264::int, 'IC001'::VARCHAR, 'Star Platinum'::VARCHAR);
+CALL insert_patient(806332342095, 'M', '1981-12-30', 'B+', 'Madhav Sankar', 9177558, NULL, NULL);
+CALL insert_patient(114211111890, 'M', '1967-05-26', 'B-', 'Riya Sabharwal', 9328599, NULL, NULL);
+CALL insert_patient(818324671192, 'M', '2003-09-25', 'B+', 'Arhaan Soman', 6879363, NULL, NULL);
+CALL insert_patient(665046256864, 'F', '1981-03-22', 'B-', 'Nitara Ravel', 6611222, 'IC002', 'Niva Premium');
+CALL insert_patient(970058488365, 'F', '1998-11-03', 'B-', 'Vivaan Hayer', 9445974, NULL, NULL);
+CALL insert_patient(955474290280, 'F', '1985-05-10', 'AB+', 'Shray Mand', 6770331, NULL, NULL);
+CALL insert_patient(816182734723, 'M', '1966-08-19', 'B-', 'Umang Ramesh', 8583312, 'IC004', 'Tata Care');
+CALL insert_patient(176082384264, 'M', '1971-07-06', 'O+', 'Samarth Dugal', 8455202, NULL, NULL);
+CALL insert_patient(146359786567, 'F', '1966-05-17', 'AB+', 'Anay Bajaj', 8305513, NULL, NULL);
+
+-- 4. Diseases 
+
+CALL insert_disease(101, 'Diabetes', 'Chronic', 2000, 40);
+CALL insert_disease(102, 'Hypertension', 'Chronic', 1000, 30);
+CALL insert_disease(103, 'Asthma', 'Chronic', 2500, 25);
+CALL insert_disease(104, 'Tuberculosis', 'Infectious', 3000, 45);
+CALL insert_disease(105, 'COVID-19', 'Infectious', 4500, 50);
+CALL insert_disease(106, 'Malaria', 'Infectious', 3500, 20);
+CALL insert_disease(107, 'Typhoid', 'Infectious', 2000, 18);
+CALL insert_disease(108, 'Chickenpox', 'Infectious', 2000, 10);
+CALL insert_disease(109, 'Jaundice', 'Infectious', 2500, 22);
+CALL insert_disease(110, 'Arthritis', 'Chronic', 1000, 25);
+CALL insert_disease(111, 'Migraine', 'Chronic', 1500, 15);
+CALL insert_disease(112, 'Heart Disease', 'Chronic', 4500, 60);
+CALL insert_disease(113, 'Cancer', 'Chronic', 5000, 90);
+CALL insert_disease(114, 'Dengue', 'Infectious', 3500, 35);
+CALL insert_disease(115, 'Anemia', 'Chronic', 2000, 20);
+
+-- 5. Chronic Diseases 
+
+CALL insert_chronic_disease(159330550321, 101); 
+CALL insert_chronic_disease(806332342095, 102); 
+CALL insert_chronic_disease(114211111890, 103); 
+CALL insert_chronic_disease(146359786567, 110);
+CALL insert_chronic_disease(159330550321, 111);
+CALL insert_chronic_disease(176082384264, 112);
+CALL insert_chronic_disease(665046256864, 113);
+CALL insert_chronic_disease(146359786567,115);
+
+-- 6. Doctors
+
+CALL insert_doctor('D001', 'Cardiology', '1980-05-12', 'MBBS, MD', 5, 500, 'Dr. Arun Sharma');
+CALL insert_doctor('D002', 'Neurology', '1975-08-20', 'MBBS, DM', 5, 550, 'Dr. Rajeev Verma');
+CALL insert_doctor('D003', 'Orthopedics', '1982-11-15', 'MBBS, MS', 4, 600, 'Dr. Suresh Reddy');
+CALL insert_doctor('D004', 'Pediatrics', '1987-07-30', 'MBBS, MD', 4, 450, 'Dr. Priya Mehta');
+CALL insert_doctor('D005', 'General Surgery', '1978-02-10', 'MBBS, MS', 5, 650, 'Dr. Amit Kapoor');
+CALL insert_doctor('D006', 'Gynecology', '1985-04-25', 'MBBS, DGO', 4, 500, 'Dr. Neelam Singh');
+CALL insert_doctor('D007', 'Dermatology', '1990-09-15', 'MBBS, MD', 3, 400, 'Dr. Anil Kumar');
+CALL insert_doctor('D008', 'Oncology', '1983-12-12', 'MBBS, DNB', 5, 700, 'Dr. Vikram Joshi');
+CALL insert_doctor('D009', 'Cardiology', '1980-06-20', 'MBBS, MD', 5, 750, 'Dr. Rajesh Gupta');
+CALL insert_doctor('D010', 'Orthopedics', '1984-10-05', 'MBBS, MS', 4, 600, 'Dr. Sunil Yadav');
+CALL insert_doctor('D011', 'Neurology', '1986-03-15', 'MBBS, DM', 4, 550, 'Dr. Kavita Agarwal');
+CALL insert_doctor('D012', 'General Surgery', '1982-08-08', 'MBBS, MS', 5, 700, 'Dr. Ramesh Kumar');
+CALL insert_doctor('D013', 'Pediatrics', '1990-01-12', 'MBBS, DNB', 3, 450, 'Dr. Jyoti Bhatia');
+CALL insert_doctor('D014', 'Gynecology', '1979-11-22', 'MBBS, DGO', 5, 650, 'Dr. Rekha Sharma');
+CALL insert_doctor('D015', 'Dermatology', '1985-05-25', 'MBBS, MD', 4, 400, 'Dr. Mohit Mehra');
+CALL insert_doctor('D016', 'Oncology', '1984-02-18', 'MBBS, DNB', 5, 700, 'Dr. Shalini Bhardwaj');
+CALL insert_doctor('D017', 'Cardiology', '1992-12-02', 'MBBS, MD', 3, 500, 'Dr. Pradeep Rathi');
+CALL insert_doctor('D018', 'Neurology', '1988-07-10', 'MBBS, DM', 4, 550, 'Dr. Seema Kapoor');
+CALL insert_doctor('D019', 'Orthopedics', '1981-11-30', 'MBBS, MS', 5, 650, 'Dr. Manish Chawla');
+CALL insert_doctor('D020', 'Pediatrics', '1995-04-20', 'MBBS, DNB', 3, 400, 'Dr. Tanuja Bansal');
+
+
+-- 7. Hospitals
+
+CALL insert_hospital('H001', 200, 'Delhi', 'New Delhi', 'Private', 5);
+CALL insert_hospital('H002', 150, 'Maharashtra', 'Mumbai', 'Public', 4);
+CALL insert_hospital('H003', 180, 'Karnataka', 'Bengaluru', 'Private', 5);
+CALL insert_hospital('H004', 300, 'Tamil Nadu', 'Chennai', 'Private', 5);
+CALL insert_hospital('H005', 250, 'Kerala', 'Kochi', 'Public', 4);
+CALL insert_hospital('H006', 100, 'Punjab', 'Amritsar', 'Private', 3);
+CALL insert_hospital('H007', 120, 'West Bengal', 'Kolkata', 'Public', 3);
+CALL insert_hospital('H008', 220, 'Uttar Pradesh', 'Lucknow', 'Private', 4);
+CALL insert_hospital('H009', 350, 'Rajasthan', 'Jaipur', 'Public', 5);
+CALL insert_hospital('H010', 180, 'Gujarat', 'Ahmedabad', 'Private', 4);
+
+
+-- 8. Designation
+
+CALL insert_designation('H001', 'D001');
+CALL insert_designation('H002', 'D002');
+CALL insert_designation('H003', 'D003');
+CALL insert_designation('H004', 'D004');
+CALL insert_designation('H005', 'D005');
+CALL insert_designation('H006', 'D006');
+CALL insert_designation('H007', 'D007');
+CALL insert_designation('H008', 'D008');
+CALL insert_designation('H009', 'D009');
+CALL insert_designation('H010', 'D010');
+CALL insert_designation('H001', 'D011');
+CALL insert_designation('H002', 'D012');
+CALL insert_designation('H003', 'D013');
+CALL insert_designation('H004', 'D014');
+CALL insert_designation('H005', 'D015');
+
+
+-- 9. Worked_in
+
+CALL insert_worked_in('H001', 'D001');
+CALL insert_worked_in('H002', 'D002');
+CALL insert_worked_in('H003', 'D003');
+CALL insert_worked_in('H004', 'D004');
+CALL insert_worked_in('H005', 'D005');
+CALL insert_worked_in('H006', 'D006');
+CALL insert_worked_in('H007', 'D007');
+CALL insert_worked_in('H008', 'D008');
+CALL insert_worked_in('H009', 'D009');
+CALL insert_worked_in('H010', 'D010');
+CALL insert_worked_in('H001', 'D011');
+CALL insert_worked_in('H002', 'D012');
+CALL insert_worked_in('H003', 'D013');
+CALL insert_worked_in('H004', 'D014');
+CALL insert_worked_in('H005', 'D015');
+CALL insert_worked_in('H006', 'D016');
+CALL insert_worked_in('H007', 'D017');
+CALL insert_worked_in('H008', 'D018');
+CALL insert_worked_in('H009', 'D019');
+CALL insert_worked_in('H010', 'D020');
+CALL insert_worked_in('H010', 'D001');
+CALL insert_worked_in('H010', 'D005');
+CALL insert_worked_in('H003', 'D002');
+
+-- 10. Drug
+
+CALL insert_drug('DR001', 1, 'Paracetamol', 50);
+CALL insert_drug('DR002', 2, 'Aspirin', 70);
+CALL insert_drug('DR003', 4, 'Ibuprofen', 80);
+CALL insert_drug('DR004', 1, 'Amoxicillin', 100);
+CALL insert_drug('DR005', 2, 'Metformin', 120);
+CALL insert_drug('DR006', 5, 'Losartan', 90);
+CALL insert_drug('DR007', 1, 'Ciprofloxacin', 150);
+CALL insert_drug('DR008', 3, 'Azithromycin', 200);
+CALL insert_drug('DR009', 1, 'Paroxetine', 180);
+CALL insert_drug('DR010', 2, 'Lisinopril', 160);
+CALL insert_drug('DR011', 3, 'Omeprazole', 110);
+CALL insert_drug('DR012', 4, 'Tamsulosin', 140);
+CALL insert_drug('DR013', 2, 'Simvastatin', 130);
+CALL insert_drug('DR014', 3, 'Sildenafil', 220);
+CALL insert_drug('DR015', 1, 'Ranitidine', 90);
+CALL insert_drug('DR016', 5, 'Lorazepam', 85);
+CALL insert_drug('DR017', 1, 'Diazepam', 95);
+CALL insert_drug('DR018', 3, 'Fluoxetine', 100);
+CALL insert_drug('DR019', 1, 'Warfarin', 110);
+CALL insert_drug('DR020', 4, 'Atorvastatin', 160);
+CALL insert_drug('DR021', 3, 'Captopril', 120);
+CALL insert_drug('DR022', 1, 'Hydrochlorothiazide', 140);
+CALL insert_drug('DR023', 5, 'Furosemide', 160);
+CALL insert_drug('DR024', 1, 'Clonazepam', 180);
+CALL insert_drug('DR025', 3, 'Metoprolol', 150);
+
+
+-- 11. Prescription
+CALL insert_prescription(159330550321, 'DR001', 101, '2025-01-15', 'H001', 'D001');
+CALL insert_prescription(806332342095, 'DR002', 102, '2022-02-16', 'H002', 'D002');
+CALL insert_prescription(114211111890, 'DR003', 103, '2023-03-17', 'H003', 'D002');
+CALL insert_prescription(818324671192, 'DR004', 104, '2014-04-18', 'H004', 'D004');
+CALL insert_prescription(665046256864, 'DR005', 105, '2018-05-19', 'H005', 'D005');
+CALL insert_prescription(970058488365, 'DR006', 106, '2023-06-20', 'H006', 'D006');
+CALL insert_prescription(955474290280, 'DR007', 107, '2012-07-21', 'H007', 'D007');
+CALL insert_prescription(816182734723, 'DR008', 108, '2007-08-22', 'H008', 'D008');
+CALL insert_prescription(176082384264, 'DR009', 109, '2024-09-23', 'H009', 'D009');
+CALL insert_prescription(146359786567, 'DR010', 110, '2021-10-24', 'H010', 'D005');
+CALL insert_prescription(159330550321, 'DR011', 111, '2023-11-25', 'H001', 'D001');
+CALL insert_prescription(176082384264, 'DR012', 112, '2024-12-26', 'H002', 'D002');
+CALL insert_prescription(665046256864, 'DR013', 113, '2017-01-27', 'H003', 'D013');
+CALL insert_prescription(970058488365, 'DR014', 114, '2020-02-28', 'H004', 'D014');
+CALL insert_prescription(146359786567, 'DR015', 115, '2019-03-01', 'H005', 'D015');
+
+-- 12. Tie up with
+
+CALL insert_tie_up('IC001','H001');
+CALL insert_tie_up('IC002','H002');
+CALL insert_tie_up('IC003','H003');
+
